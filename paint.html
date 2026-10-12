@@ -1,0 +1,1374 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+
+    <title>お絵描き</title>
+
+    <!-- 既存のCSS -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&display=swap"
+        rel="stylesheet">
+
+
+    <!-- お絵描き専用CSS -->
+    <style>
+
+        /* =================================
+           お絵描きページ全体
+        ================================= */
+
+        .ink-page {
+            width: 100%;
+
+            min-height: calc(100vh - 100px);
+
+            display: flex;
+
+            justify-content: center;
+
+            padding: 40px 15px 60px;
+        }
+
+
+        /* =================================
+           お絵描きコンテンツ
+        ================================= */
+
+        .ink-container {
+            width: min(1100px, 100%);
+
+            text-align: center;
+        }
+
+
+        /* =================================
+           タイトル
+        ================================= */
+
+        .ink-title {
+            margin: 0;
+
+            font-size: clamp(28px, 5vw, 48px);
+
+            letter-spacing: 0.15em;
+
+            font-weight: 700;
+        }
+
+
+        .ink-subtitle {
+            margin: 8px 0 25px;
+
+            color: #777;
+
+            font-size: 13px;
+
+            letter-spacing: 0.15em;
+        }
+
+
+        /* =================================
+           キャンバスを囲む白い紙
+        ================================= */
+
+        .ink-paper {
+            background: white;
+
+            padding: 15px;
+
+            box-shadow:
+                0 15px 40px rgba(0, 0, 0, 0.12);
+
+            display: inline-block;
+
+            width: 100%;
+
+            max-width: 1000px;
+        }
+
+
+        /* =================================
+           キャンバス
+        ================================= */
+
+        #canvas {
+            display: block;
+
+            width: 100%;
+
+            height: auto;
+
+            background: white;
+
+            cursor: crosshair;
+
+            touch-action: none;
+        }
+
+        /* =========================
+   　　　　　　アニメーション用キャンバス
+　　　　　　　========================= */
+
+          .canvas-wrap {
+              position: relative;
+              width: 100%;
+          }
+
+          #effectCanvas {
+              position: absolute;
+              top: 0;
+              left: 0;
+
+              width: 100%;
+              height: 100%;
+
+              pointer-events: none;
+              background: transparent;
+
+              z-index: 2;
+          }
+
+
+        /* =================================
+           作品タイトル
+        ================================= */
+
+        .ink-work-title {
+            margin-top: 20px;
+        }
+
+
+        #titleInput {
+            width: min(400px, 90%);
+
+            padding: 12px 15px;
+
+            border: none;
+
+            background: white;
+
+            outline: none;
+
+            font-size: 14px;
+
+            text-align: center;
+
+            box-shadow:
+                0 5px 15px rgba(0, 0, 0, 0.06);
+        }
+
+
+        #titleInput:focus {
+            box-shadow:
+                0 0 0 2px #222;
+        }
+
+
+        /* =================================
+           操作パネル
+        ================================= */
+
+        .ink-controls {
+            width: 100%;
+
+            max-width: 1000px;
+
+            margin: 20px auto 0;
+
+            background: white;
+
+            padding: 20px;
+
+            display: flex;
+
+            flex-wrap: wrap;
+
+            justify-content: center;
+
+            align-items: center;
+
+            gap: 15px;
+
+            box-shadow:
+                0 8px 25px rgba(0, 0, 0, 0.08);
+        }
+
+
+        .ink-control {
+            display: flex;
+
+            align-items: center;
+
+            gap: 8px;
+
+            font-size: 14px;
+        }
+
+
+        /* =================================
+           カラーピッカー
+        ================================= */
+
+        #colorPicker {
+            width: 50px;
+
+            height: 40px;
+
+            padding: 0;
+
+            border: none;
+
+            background: transparent;
+
+            cursor: pointer;
+        }
+
+
+        /* =================================
+           サイズ
+        ================================= */
+
+        #sizeSlider {
+            width: 140px;
+
+            cursor: pointer;
+        }
+
+
+        #sizeValue {
+            min-width: 35px;
+
+            text-align: left;
+
+            font-size: 13px;
+
+            color: #666;
+        }
+
+
+        /* =================================
+           ボタン
+        ================================= */
+
+        .ink-controls button {
+            border: none;
+
+            padding: 11px 18px;
+
+            background: #222;
+
+            color: white;
+
+            font-size: 13px;
+
+            cursor: pointer;
+
+            transition: 0.2s;
+        }
+
+
+        .ink-controls button:hover {
+            background: #555;
+
+            transform: translateY(-1px);
+        }
+
+
+        .ink-controls button:active {
+            transform: translateY(0);
+        }
+
+
+        /* 消しゴム */
+
+        #eraseButton {
+            background: #888;
+        }
+
+
+        #eraseButton.active {
+            background: #d9534f;
+        }
+
+
+        /* 全消去 */
+
+        #clearButton {
+            background: #333;
+        }
+
+
+        /* 保存 */
+
+        #saveButton {
+            background: #111;
+        }
+
+
+        /* =================================
+           説明
+        ================================= */
+
+        .ink-instruction {
+            margin-top: 18px;
+
+            color: #777;
+
+            font-size: 12px;
+
+            line-height: 1.8;
+        }
+
+
+        /* =================================
+           カウント
+        ================================= */
+
+        .ink-counter {
+            margin-top: 10px;
+
+            font-size: 11px;
+
+            color: #999;
+
+            letter-spacing: 0.1em;
+        }
+
+
+        /* =================================
+           スマートフォン
+        ================================= */
+
+        @media (max-width: 600px) {
+
+            .ink-page {
+                padding: 25px 10px 40px;
+            }
+
+
+            .ink-paper {
+                padding: 8px;
+            }
+
+
+            .ink-controls {
+                padding: 15px 10px;
+
+                gap: 10px;
+            }
+
+
+            .ink-control {
+                font-size: 12px;
+            }
+
+
+            .ink-controls button {
+                padding: 10px 13px;
+
+                font-size: 12px;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+    <!-- =================================
+         既存のヘッダー
+    ================================= -->
+
+    <header>
+
+        <h1 class="logo">
+            EmoColor
+        </h1>
+
+
+        <nav id="nav">
+
+            <ul>
+
+                <li>
+                    <a href="index.html">
+                        ホーム
+                    </a>
+                </li>
+
+                <li>
+                    <a href="emotion.html">
+                        Emotion
+                    </a>
+                </li>
+
+                <li>
+                    <a href="paint.html">
+                        Paint
+                    </a>
+                </li>
+
+                <li>
+                    <a href="about.html">
+                        About
+                    </a>
+                </li>
+
+            </ul>
+
+        </nav>
+
+    </header>
+
+
+
+    <!-- =================================
+         お絵描きページ
+    ================================= -->
+
+    <main class="ink-page">
+
+        <div class="ink-container">
+
+
+            <!-- タイトル -->
+
+            <h2 class="ink-title">
+                お絵描き
+            </h2>
+
+
+
+            <!-- =================================
+                 キャンバス
+            ================================= -->
+
+            <div class="ink-paper">
+
+    <div class="canvas-wrap">
+
+        <!-- 作品を描くキャンバス -->
+        <canvas
+            id="canvas"
+            width="1200"
+            height="750">
+        </canvas>
+
+        <!-- 飛んでくるインクを表示するキャンバス -->
+        <canvas
+            id="effectCanvas"
+            width="1200"
+            height="750"
+            aria-hidden="true">
+        </canvas>
+
+    </div>
+
+</div>
+
+
+
+            <!-- =================================
+                 作品タイトル
+            ================================= -->
+
+            <div class="ink-work-title">
+
+                <input
+                    type="text"
+                    id="titleInput"
+                    placeholder="作品タイトルを入力">
+
+            </div>
+
+
+
+            <!-- =================================
+                 操作パネル
+            ================================= -->
+
+            <div class="ink-controls">
+
+
+                <!-- 色 -->
+
+                <div class="ink-control">
+
+                    <label for="colorPicker">
+                        インク
+                    </label>
+
+                    <input
+                        type="color"
+                        id="colorPicker"
+                        value="#111111">
+
+                </div>
+
+
+
+                <!-- サイズ -->
+
+                <div class="ink-control">
+
+                    <label for="sizeSlider">
+                        サイズ
+                    </label>
+
+                    <input
+                        type="range"
+                        id="sizeSlider"
+                        min="5"
+                        max="50"
+                        value="20">
+
+                    <span id="sizeValue">
+                        20
+                    </span>
+
+                </div>
+
+
+
+                <!-- 消しゴム -->
+
+                <button id="eraseButton">
+                    消しゴム
+                </button>
+
+
+
+                <!-- 全消去 -->
+
+                <button id="clearButton">
+                    全消去
+                </button>
+
+
+
+                <!-- 保存 -->
+
+                <button id="saveButton">
+                    作品を保存
+                </button>
+
+
+            </div>
+
+
+
+            <!-- =================================
+                 説明
+            ================================= -->
+
+            <p class="ink-instruction">
+
+                キャンバスをクリックするとインクが飛び散ります。<br>
+
+                ドラッグすると連続してインクを描くことができます。
+                 <div class="ink-counter">
+                    飛び散った回数：<span id="counter">0</span>
+                 </div>
+            </p>
+
+
+        </div>
+
+    </main>
+
+
+
+    <!-- =================================
+         JavaScript
+    ================================= -->
+
+    <script>
+
+        /* =========================
+           要素取得
+        ========================= */
+
+        const canvas =
+            document.getElementById("canvas");
+
+        const ctx =
+            canvas.getContext("2d");
+        
+        /* アニメーション用キャンバス */
+        const effectCanvas =
+            document.getElementById("effectCanvas");
+
+        const effectCtx =
+            effectCanvas.getContext("2d");
+
+        const colorPicker =
+            document.getElementById("colorPicker");
+
+        const sizeSlider =
+            document.getElementById("sizeSlider");
+
+        const sizeValue =
+            document.getElementById("sizeValue");
+
+        const eraseButton =
+            document.getElementById("eraseButton");
+
+        const clearButton =
+            document.getElementById("clearButton");
+
+        const saveButton =
+            document.getElementById("saveButton");
+
+        const titleInput =
+            document.getElementById("titleInput");
+
+        const counterElement =
+            document.getElementById("counter");
+
+
+        /* =========================
+           状態
+        ========================= */
+
+        let isDrawing = false;
+
+        let isEraser = false;
+
+        let splashCount = 0;
+
+        /* アニメーションの状態 */
+        let isAnimating = false;
+
+        let animationFrameId = null;
+
+        let animationToken = 0;
+
+
+        /* =========================
+           サイズ表示
+        ========================= */
+
+        sizeSlider.addEventListener(
+            "input",
+            function () {
+
+                sizeValue.textContent =
+                    sizeSlider.value;
+
+            }
+        );
+
+
+        /* =========================
+           ランダム値
+        ========================= */
+
+        function random(min, max) {
+
+            return Math.random()
+                * (max - min)
+                + min;
+
+        }
+
+
+        /* =========================
+           インク1滴
+        ========================= */
+
+        function drawInk(
+            x,
+            y,
+            size,
+            color
+        ) {
+
+            ctx.beginPath();
+
+            ctx.arc(
+                x,
+                y,
+                size,
+                0,
+                Math.PI * 2
+            );
+
+            ctx.fillStyle = color;
+
+            ctx.fill();
+
+        }
+
+
+        /* =========================
+           インクを飛ばす
+        ========================= */
+
+        function splashInk(x, y) {
+
+            const baseSize =
+                Number(sizeSlider.value);
+
+
+            /* 消しゴム */
+
+            if (isEraser) {
+
+                ctx.save();
+
+                ctx.globalCompositeOperation =
+                    "destination-out";
+
+
+                ctx.beginPath();
+
+                ctx.arc(
+                    x,
+                    y,
+                    baseSize * 2,
+                    0,
+                    Math.PI * 2
+                );
+
+                ctx.fill();
+
+                ctx.restore();
+
+                return;
+            }
+
+
+            const color =
+                colorPicker.value;
+
+
+            /* 中心 */
+
+            drawInk(
+                x,
+                y,
+                random(
+                    baseSize * 0.7,
+                    baseSize * 1.3
+                ),
+                color
+            );
+
+
+            /* 周囲 */
+
+            const amount =
+                Math.floor(
+                    random(15, 35)
+                );
+
+
+            for (
+                let i = 0;
+                i < amount;
+                i++
+            ) {
+
+                const angle =
+                    Math.random()
+                    * Math.PI
+                    * 2;
+
+
+                const distance =
+                    Math.pow(
+                        Math.random(),
+                        0.7
+                    )
+                    * baseSize
+                    * 5;
+
+
+                const splashX =
+                    x
+                    + Math.cos(angle)
+                    * distance;
+
+
+                const splashY =
+                    y
+                    + Math.sin(angle)
+                    * distance;
+
+
+                const splashSize =
+                    random(
+                        1,
+                        baseSize * 0.35
+                    );
+
+
+                drawInk(
+                    splashX,
+                    splashY,
+                    splashSize,
+                    color
+                );
+
+            }
+
+
+            /* 離れた飛沫 */
+
+            if (Math.random() > 0.5) {
+
+                const angle =
+                    Math.random()
+                    * Math.PI
+                    * 2;
+
+
+                const distance =
+                    random(
+                        baseSize * 3,
+                        baseSize * 7
+                    );
+
+
+                const dotX =
+                    x
+                    + Math.cos(angle)
+                    * distance;
+
+
+                const dotY =
+                    y
+                    + Math.sin(angle)
+                    * distance;
+
+
+                drawInk(
+                    dotX,
+                    dotY,
+                    random(
+                        1,
+                        baseSize * 0.25
+                    ),
+                    color
+                );
+
+            }
+
+
+            /* カウント */
+
+            splashCount++;
+
+            counterElement.textContent =
+                splashCount;
+
+        }
+
+
+        /* =========================
+           Canvas位置
+        ========================= */
+
+        function getPosition(event) {
+
+        const rect =
+            canvas.getBoundingClientRect();
+
+        const scaleX =
+            canvas.width / rect.width;
+
+        const scaleY =
+            canvas.height / rect.height;
+
+        return {
+            x:
+                (event.clientX - rect.left)
+                * scaleX,
+
+            y:
+                (event.clientY - rect.top)
+                * scaleY
+        };
+
+    } // ← この } が必要です
+
+
+    // この下からアニメーションの関数を開始
+    function animateSplashBomb(x, y) {
+
+    // 消しゴムは今までどおり即座に動作させる
+    if (isEraser) {
+        splashInk(x, y);
+        return;
+    }
+
+    // アニメーション中の重複起動を防ぐ
+    if (isAnimating) {
+        return;
+    }
+
+    isAnimating = true;
+
+    const token = ++animationToken;
+
+    const color = colorPicker.value;
+    const baseSize = Number(sizeSlider.value);
+
+    // インクが飛んでくる開始位置
+    const startX = Math.max(
+        8,
+        Math.min(canvas.width - 8, x - 75)
+    );
+
+    const startY = Math.max(
+        8,
+        Math.min(canvas.height - 8, y - 80)
+    );
+
+    const startTime = performance.now();
+
+    // 飛んでくる時間と着弾後の時間
+    const flightDuration = 230;
+    const impactDuration = 260;
+    const totalDuration =
+        flightDuration + impactDuration;
+
+    let impactDone = false;
+    let particles = [];
+
+    function animate(now) {
+
+        // 全消去などで中断された場合は終了
+        if (token !== animationToken) {
+            return;
+        }
+
+        const elapsed = now - startTime;
+
+        effectCtx.clearRect(
+            0,
+            0,
+            effectCanvas.width,
+            effectCanvas.height
+        );
+
+        /* -------------------------
+           1. インクが飛んでくる
+        ------------------------- */
+
+        if (elapsed < flightDuration) {
+
+            const progress =
+                elapsed / flightDuration;
+
+            // 徐々に減速して着弾する動き
+            const eased =
+                1 - Math.pow(1 - progress, 3);
+
+            const ballX =
+                startX + (x - startX) * eased;
+
+            const ballY =
+                startY
+                + (y - startY) * eased
+                - Math.sin(progress * Math.PI) * 22;
+
+            // 後ろに小さな飛沫を描く
+            for (let i = 3; i >= 1; i--) {
+
+                const trailX =
+                    ballX - (x - startX) * i * 0.055;
+
+                const trailY =
+                    ballY - (y - startY) * i * 0.055;
+
+                effectCtx.beginPath();
+
+                effectCtx.arc(
+                    trailX,
+                    trailY,
+                    Math.max(1.5, baseSize * 0.07 * (4 - i)),
+                    0,
+                    Math.PI * 2
+                );
+
+                effectCtx.fillStyle = color;
+                effectCtx.globalAlpha = 0.45;
+
+                effectCtx.fill();
+            }
+
+            effectCtx.globalAlpha = 1;
+
+            // 飛んでくるインクの塊
+            effectCtx.beginPath();
+
+            effectCtx.arc(
+                ballX,
+                ballY,
+                Math.max(4, baseSize * 0.42),
+                0,
+                Math.PI * 2
+            );
+
+            effectCtx.fillStyle = color;
+            effectCtx.fill();
+
+            // インク表面の小さなハイライト
+            effectCtx.beginPath();
+
+            effectCtx.arc(
+                ballX - baseSize * 0.12,
+                ballY - baseSize * 0.13,
+                Math.max(1.5, baseSize * 0.09),
+                0,
+                Math.PI * 2
+            );
+
+            effectCtx.fillStyle = "rgba(255,255,255,0.5)";
+            effectCtx.fill();
+
+        } else {
+
+            /* -------------------------
+               2. 着弾してインクが弾ける
+            ------------------------- */
+
+            if (!impactDone) {
+
+                // 元の描画機能で飛沫を作品に残す
+                splashInk(x, y);
+
+                // 飛び散る粒を作る
+                const amount = 26;
+
+                for (let i = 0; i < amount; i++) {
+
+                    const angle =
+                        Math.random() * Math.PI * 2;
+
+                    const speed =
+                        random(
+                            baseSize * 1.2,
+                            baseSize * 4
+                        );
+
+                    particles.push({
+                        x: x,
+                        y: y,
+
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+
+                        radius: random(
+                            1.5,
+                            Math.max(2, baseSize * 0.22)
+                        )
+                    });
+                }
+
+                impactDone = true;
+            }
+
+            const impactProgress = Math.min(
+                1,
+                (elapsed - flightDuration)
+                    / impactDuration
+            );
+
+            // 粒が広がりながら徐々に消える
+            effectCtx.save();
+
+            effectCtx.globalAlpha =
+                1 - impactProgress;
+
+            particles.forEach(function(particle) {
+
+                const particleX =
+                    particle.x
+                    + particle.vx * impactProgress;
+
+                const particleY =
+                    particle.y
+                    + particle.vy * impactProgress
+                    + baseSize * 1.2
+                    * impactProgress
+                    * impactProgress;
+
+                effectCtx.beginPath();
+
+                effectCtx.arc(
+                    particleX,
+                    particleY,
+                    particle.radius
+                        * (1 - impactProgress * 0.25),
+                    0,
+                    Math.PI * 2
+                );
+
+                effectCtx.fillStyle = color;
+                effectCtx.fill();
+
+            });
+
+            effectCtx.restore();
+        }
+
+        /* -------------------------
+           3. アニメーション終了
+        ------------------------- */
+
+        if (elapsed < totalDuration) {
+
+            animationFrameId =
+                requestAnimationFrame(animate);
+
+        } else {
+
+            effectCtx.clearRect(
+                0,
+                0,
+                effectCanvas.width,
+                effectCanvas.height
+            );
+
+            animationFrameId = null;
+            isAnimating = false;
+        }
+    }
+
+    animationFrameId =
+        requestAnimationFrame(animate);
+}
+
+
+        /* =========================
+           描画開始
+        ========================= */
+
+        canvas.addEventListener("pointerdown", function(event) {
+    event.preventDefault();
+
+    if (isAnimating) return;
+
+    isDrawing = true;
+    canvas.setPointerCapture(event.pointerId);
+
+    const position = getPosition(event);
+
+    // インクが飛んできて弾けるアニメーション
+    animateSplashBomb(position.x, position.y);
+});
+
+canvas.addEventListener("pointermove", function(event) {
+    if (!isDrawing || isAnimating) return;
+
+    event.preventDefault();
+
+    const position = getPosition(event);
+
+    // ドラッグ中は従来のインク描画
+    splashInk(position.x, position.y);
+});
+
+canvas.addEventListener("pointerup", function() {
+    isDrawing = false;
+});
+
+canvas.addEventListener("pointercancel", function() {
+    isDrawing = false;
+});
+
+
+        /* =========================
+           消しゴム
+        ========================= */
+
+        eraseButton.addEventListener(
+            "click",
+            function () {
+
+                isEraser =
+                    !isEraser;
+
+
+                if (isEraser) {
+
+                    eraseButton
+                        .classList
+                        .add("active");
+
+                    eraseButton.textContent =
+                        "消しゴム ON";
+
+                } else {
+
+                    eraseButton
+                        .classList
+                        .remove("active");
+
+                    eraseButton.textContent =
+                        "消しゴム";
+
+                }
+
+            }
+        );
+
+
+        /* =========================
+           全消去
+        ========================= */
+
+        clearButton.addEventListener(
+            "click",
+            function () {
+
+                const answer =
+                    confirm(
+                        "作品をすべて消しますか？"
+                    );
+
+
+                if (!answer) {
+                    return;
+                }
+        // 再生中のアニメーションを停止
+            animationToken++;
+
+            if (animationFrameId !== null) {
+                cancelAnimationFrame(animationFrameId);
+            }
+
+            animationFrameId = null;
+            isAnimating = false;
+
+            effectCtx.clearRect(
+                0,
+                0,
+                effectCanvas.width,
+                effectCanvas.height
+            );
+
+                ctx.clearRect(
+                    0,
+                    0,
+                    canvas.width,
+                    canvas.height
+                );
+
+
+                splashCount = 0;
+
+                counterElement.textContent =
+                    "0";
+
+            }
+        );
+
+
+        /* =========================
+           作品保存
+        ========================= */
+
+        saveButton.addEventListener(
+            "click",
+            function () {
+
+                const saveCanvas =
+                    document.createElement(
+                        "canvas"
+                    );
+
+
+                saveCanvas.width =
+                    canvas.width;
+
+
+                saveCanvas.height =
+                    canvas.height;
+
+
+                const saveCtx =
+                    saveCanvas.getContext(
+                        "2d"
+                    );
+
+
+                /* 白背景 */
+
+                saveCtx.fillStyle =
+                    "#ffffff";
+
+
+                saveCtx.fillRect(
+                    0,
+                    0,
+                    saveCanvas.width,
+                    saveCanvas.height
+                );
+
+
+                /* 作品コピー */
+
+                saveCtx.drawImage(
+                    canvas,
+                    0,
+                    0
+                );
+
+
+                /* ファイル名 */
+
+                let title =
+                    titleInput.value.trim();
+
+
+                if (title === "") {
+
+                    title =
+                        "ink-art";
+
+                }
+
+
+                /* 保存 */
+
+                const link =
+                    document.createElement(
+                        "a"
+                    );
+
+
+                link.download =
+                    title + ".png";
+
+
+                link.href =
+                    saveCanvas.toDataURL(
+                        "image/png"
+                    );
+
+
+                link.click();
+
+            }
+        );
+
+    </script>
+
+
+</body>
+
+</html>                         
